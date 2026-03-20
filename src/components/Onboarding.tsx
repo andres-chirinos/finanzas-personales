@@ -5,7 +5,6 @@ import {
   QrCode, 
   BarChart3, 
   ChevronRight, 
-  CheckCircle2,
   Sparkles
 } from 'lucide-react';
 import { db } from '../lib/db';
