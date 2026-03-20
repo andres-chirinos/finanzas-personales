@@ -7,6 +7,7 @@ import HistoryView from './components/History';
 import ProfileManager from './components/ProfileManager';
 import CategoryManager from './components/CategoryManager';
 import Stats from './components/Stats';
+import Onboarding from './components/Onboarding';
 import { 
   Plus, 
   Wallet, 
@@ -31,6 +32,11 @@ const App: React.FC = () => {
 
   const currentProfileId = currentProfile?.currentProfileId || 'default';
   const currency = currentProfile?.currency || 'Bs';
+  const hasCompletedOnboarding = currentProfile?.hasCompletedOnboarding;
+
+  if (hasCompletedOnboarding === false) {
+    return <Onboarding onComplete={() => {}} />;
+  }
 
   return (
     <div className="app-container">

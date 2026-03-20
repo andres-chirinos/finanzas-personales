@@ -35,6 +35,7 @@ export interface UserSettings {
   currency?: string;
   contributeAnonymously: boolean;
   categorySort?: 'manual' | 'most-used';
+  hasCompletedOnboarding: boolean;
 }
 
 export class AppDatabase extends Dexie {
@@ -91,7 +92,8 @@ export async function seedDatabase() {
       await db.settings.add({
         theme: 'dark',
         currentProfileId: defaultProfile.id,
-        contributeAnonymously: false
+        contributeAnonymously: false,
+        hasCompletedOnboarding: false
       });
     } else {
       // Ensure currentProfileId is set if it was missing from previous version
