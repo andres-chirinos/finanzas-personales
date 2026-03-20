@@ -7,9 +7,10 @@ import Settings from './Settings';
 interface Props {
   currentProfileId: string;
   onSwitch: (id: string) => void;
+  onClose: () => void;
 }
 
-const ProfileManager: React.FC<Props> = ({ currentProfileId, onSwitch }) => {
+const ProfileManager: React.FC<Props> = ({ currentProfileId, onSwitch, onClose }) => {
   const [view, setView] = useState<'profiles' | 'settings'>('profiles');
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -79,7 +80,7 @@ const ProfileManager: React.FC<Props> = ({ currentProfileId, onSwitch }) => {
     >
       <div style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ fontSize: '24px', fontWeight: '800' }}>Perfiles</h2>
-        <button onClick={() => onSwitch(currentProfileId)} style={{ background: 'none', border: 'none', color: 'white', padding: '10px' }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', padding: '10px' }}>
           <X size={24} />
         </button>
       </div>

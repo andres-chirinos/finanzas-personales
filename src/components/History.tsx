@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { db } from '../lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Search, Utensils, Car, Tv, Activity, MoreHorizontal, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import CustomDatePicker from './ui/CustomDatePicker';
 
 interface Props {
   profileId: string;
@@ -75,30 +76,16 @@ const History: React.FC<Props> = ({ profileId, currency, initialCategory }) => {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
-          <div>
-            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', marginLeft: '4px' }}>Desde</p>
-            <input 
-              type="date" 
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={{
-                width: '100%', padding: '10px', borderRadius: '12px', border: '1px solid var(--glass-border)',
-                background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '13px'
-              }}
-            />
-          </div>
-          <div>
-            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', marginLeft: '4px' }}>Hasta</p>
-            <input 
-              type="date" 
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={{
-                width: '100%', padding: '10px', borderRadius: '12px', border: '1px solid var(--glass-border)',
-                background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '13px'
-              }}
-            />
-          </div>
+          <CustomDatePicker 
+            label="Desde"
+            value={startDate}
+            onChange={setStartDate}
+          />
+          <CustomDatePicker 
+            label="Hasta"
+            value={endDate}
+            onChange={setEndDate}
+          />
         </div>
         
         <div style={{ marginTop: '12px' }}>

@@ -15,13 +15,11 @@ import {
   Heart, 
   Coffee,
   Briefcase,
-  ChevronUp,
-  ChevronDown,
-  Eye,
-  EyeOff,
   History,
   TrendingUp
 } from 'lucide-react';
+import { Reorder } from 'framer-motion';
+import CustomToggle from './ui/CustomToggle';
 
 const ICON_OPTIONS = [
   { name: 'Utensils', icon: Utensils },
@@ -69,6 +67,14 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
     resetForm();
   };
 
+  const handleReorder = async (newOrder: Category[]) => {
+    await db.transaction('rw', db.categories, async () => {
+      for (let i = 0; i < newOrder.length; i++) {
+        await db.categories.update(newOrder[i].id!, { order: i + 1 });
+      }
+    });
+  };
+
   const handleEdit = (cat: Category) => {
     setEditingId(cat.id!);
     setName(cat.name);
@@ -85,20 +91,6 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
 
   const toggleVisibility = async (cat: Category) => {
     await db.categories.update(cat.id!, { isHidden: !cat.isHidden });
-  };
-
-  const moveOrder = async (cat: Category, direction: 'up' | 'down') => {
-    if (!categories) return;
-    const index = categories.findIndex(c => c.id === cat.id);
-    const otherIndex = direction === 'up' ? index - 1 : index + 1;
-    
-    if (otherIndex < 0 || otherIndex >= categories.length) return;
-    
-    const otherCat = categories[otherIndex];
-    await db.transaction('rw', db.categories, async () => {
-      await db.categories.update(cat.id!, { order: otherCat.order });
-      await db.categories.update(otherCat.id!, { order: cat.order });
-    });
   };
 
   const sortByMostUsed = async () => {
@@ -123,11 +115,7 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
       return countB - countA;
     });
     
-    await db.transaction('rw', db.categories, async () => {
-      for (let i = 0; i < sortedCats.length; i++) {
-        await db.categories.update(sortedCats[i].id!, { order: i + 1 });
-      }
-    });
+    handleReorder(sortedCats);
   };
 
   const resetForm = () => {
@@ -173,7 +161,7 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
       </div>
 
       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '24px', marginLeft: '4px' }}>
-        Las categorías ocultas no aparecerán al registrar nuevas transacciones.
+        Arrastra para reordenar. Las categorías ocultas no aparecerán al registrar transacciones.
       </p>
 
       {isAdding && (
@@ -233,9 +221,23 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {categories?.map((cat, idx) => (
-          <div key={cat.id} className="glass-card" style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: cat.isHidden ? 0.5 : 1 }}>
+      <Reorder.Group 
+        axis="y" 
+        values={categories || []} 
+        onReorder={handleReorder}
+        style={{ display: 'flex', flexDirection: 'column', gap: '12px', listStyle: 'none', padding: 0 }}
+      >
+        {categories?.map((cat) => (
+          <Reorder.Item 
+            key={cat.id} 
+            value={cat}
+            className="glass-card" 
+            style={{ 
+              padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+              opacity: cat.isHidden ? 0.5 : 1, cursor: 'grab' 
+            }}
+            whileDrag={{ scale: 1.02, boxShadow: '0 8px 30px rgba(0,0,0,0.5)', zIndex: 10 }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div className="icon-box" style={{ background: 'rgba(255,255,255,0.05)', color: cat.color }}>
                 {getIconComponent(cat.icon)}
@@ -247,34 +249,28 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <button onClick={() => moveOrder(cat, 'up')} disabled={idx === 0} style={{ background: 'none', border: 'none', color: 'white', opacity: idx === 0 ? 0.1 : 0.4 }}>
-                  <ChevronUp size={16} />
-                </button>
-                <button onClick={() => moveOrder(cat, 'down')} disabled={idx === categories.length - 1} style={{ background: 'none', border: 'none', color: 'white', opacity: idx === categories.length - 1 ? 0.1 : 0.4 }}>
-                  <ChevronDown size={16} />
-                </button>
-              </div>
-              
-              <button onClick={() => onViewHistory(cat.name)} style={{ background: 'none', border: 'none', color: 'var(--primary)', opacity: 0.8 }}>
+              <button onClick={(e) => { e.stopPropagation(); onViewHistory(cat.name); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', opacity: 0.8 }}>
                 <History size={18} />
               </button>
 
-              <button onClick={() => toggleVisibility(cat)} style={{ background: 'none', border: 'none', color: 'white', opacity: 0.4 }}>
-                {cat.isHidden ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+              <CustomToggle 
+                isOn={!cat.isHidden} 
+                onToggle={() => {
+                  toggleVisibility(cat);
+                }} 
+              />
               
-              <button onClick={() => handleEdit(cat)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)' }}>
+              <button onClick={(e) => { e.stopPropagation(); handleEdit(cat); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)' }}>
                 <Edit2 size={18} />
               </button>
               
-              <button onClick={() => handleDelete(cat.id!)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)' }}>
+              <button onClick={(e) => { e.stopPropagation(); handleDelete(cat.id!); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)' }}>
                 <Trash2 size={18} />
               </button>
             </div>
-          </div>
+          </Reorder.Item>
         ))}
-      </div>
+      </Reorder.Group>
     </div>
   );
 };

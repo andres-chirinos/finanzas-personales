@@ -1,194 +1,96 @@
-import React, { useEffect, useState } from 'react';
-import { db, seedDatabase } from './lib/db';
+import React, { useState } from 'react';
+import { db } from './lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
+import Dashboard from './components/Dashboard';
 import AddTransactionModal from './components/AddTransactionModal';
-import History from './components/History';
+import HistoryView from './components/History';
 import ProfileManager from './components/ProfileManager';
 import CategoryManager from './components/CategoryManager';
+import Stats from './components/Stats';
 import { 
   Plus, 
   Wallet, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  History as HistoryIcon, 
-  Home,
+  History as LucideHistory,
+  Settings as SettingsIcon,
   User,
-  List,
-  Utensils,
-  Car,
-  Tv,
-  Activity,
-  MoreHorizontal,
-  ShoppingBag,
-  Heart,
-  Coffee,
-  Briefcase
+  ChevronDown,
+  BarChart3
 } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'stats' | 'settings'>('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<string | undefined>(undefined);
-  
-  // Queries
-  const settings = useLiveQuery(() => db.settings.toArray());
-  const currentSettings = settings?.[0];
-  const currentProfileId = currentSettings?.currentProfileId;
 
-  const currentProfile = useLiveQuery(
-    () => currentProfileId ? db.profiles.get(currentProfileId) : undefined,
-    [currentProfileId]
+  const currentProfile = useLiveQuery(() => db.settings.toArray().then(s => s[0]));
+  
+  const visibleCategories = useLiveQuery(() => 
+    db.categories.filter(c => !c.isHidden).sortBy('order')
   );
 
-  const invoices = useLiveQuery(
-    () => currentProfileId ? db.invoices.where('profileId').equals(currentProfileId).reverse().limit(10).toArray() : [],
-    [currentProfileId]
-  );
-  
-  const categories = useLiveQuery(() => db.categories.toArray());
-  
+  const currentProfileId = currentProfile?.currentProfileId || 'default';
   const currency = currentProfile?.currency || 'Bs';
-  
-  useEffect(() => {
-    seedDatabase();
-  }, []);
-
-  const totalBalance = invoices?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
-  const income = invoices?.filter(i => i.amount > 0).reduce((acc, curr) => acc + curr.amount, 0) || 0;
-  const expenses = invoices?.filter(i => i.amount < 0).reduce((acc, curr) => acc + curr.amount, 0) || 0;
-
-  const getCategoryIcon = (name: string) => {
-    const cat = categories?.find(c => c.name === name);
-    switch (cat?.icon) {
-      case 'Utensils': return <Utensils size={20} color={cat.color} />;
-      case 'Car': return <Car size={20} color={cat.color} />;
-      case 'Tv': return <Tv size={20} color={cat.color} />;
-      case 'Activity': return <Activity size={20} color={cat.color} />;
-      case 'ShoppingBag': return <ShoppingBag size={20} color={cat.color} />;
-      case 'Heart': return <Heart size={20} color={cat.color} />;
-      case 'Coffee': return <Coffee size={20} color={cat.color} />;
-      case 'Briefcase': return <Briefcase size={20} color={cat.color} />;
-      default: return <MoreHorizontal size={20} color={cat?.color || '#fff'} />;
-    }
-  };
 
   return (
     <div className="app-container">
-      <header className="header animate-up">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="icon-box" style={{ background: 'var(--primary)', color: 'white' }}>
-            <Wallet size={24} />
+      <header className="app-header">
+        <div className="profile-trigger" onClick={() => setIsProfileOpen(!isProfileOpen)}>
+          <div className="avatar">
+            <User size={20} />
           </div>
-          <h1 style={{ fontSize: '20px', fontWeight: '700' }}>Billetera</h1>
+          <div>
+            <p style={{ fontSize: '12px', opacity: 0.6 }}>Hola,</p>
+            <p style={{ fontWeight: '700' }}>Usuario <ChevronDown size={14} /></p>
+          </div>
         </div>
-        <div 
-          className="icon-box glass-card" 
-          style={{ width: '40px', height: '40px', padding: 0, cursor: 'pointer' }}
-          onClick={() => setIsProfileOpen(!isProfileOpen)}
-        >
-          <User size={20} />
+        <div style={{ color: 'var(--primary)', fontWeight: '800', fontSize: '18px' }}>
+          Antigravity
         </div>
       </header>
 
-      {isProfileOpen && currentProfileId && (
+      {isProfileOpen && (
         <ProfileManager 
-          currentProfileId={currentProfileId} 
+          currentProfileId={currentProfileId}
           onSwitch={(id) => {
-            db.settings.update(currentSettings!.id!, { currentProfileId: id });
+            db.settings.update(1, { currentProfileId: id });
             setIsProfileOpen(false);
-          }} 
+          }}
+          onClose={() => setIsProfileOpen(false)} 
         />
       )}
 
-      {activeTab === 'home' && (
-        <>
-          <div className="balance-card animate-up" style={{ animationDelay: '0.1s' }}>
-            <p className="balance-label">Balance Total</p>
-            <p className="balance-amount">{currency} {totalBalance.toLocaleString()}</p>
-            
-            <div className="stats-grid" style={{ marginTop: '24px' }}>
-              <div className="stat-item">
-                <span className="balance-label">Ingresos</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <ArrowUpRight size={16} color="var(--success)" />
-                  <span className="stat-value income">{currency} {income.toLocaleString()}</span>
-                </div>
-              </div>
-              <div className="stat-item">
-                <span className="balance-label">Gastos</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <ArrowDownLeft size={16} color="var(--danger)" />
-                  <span className="stat-value expense">{currency} {Math.abs(expenses).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+      <main className="main-content">
+        {activeTab === 'home' && currentProfileId && (
+          <Dashboard profileId={currentProfileId} currency={currency} />
+        )}
+        
+        {activeTab === 'history' && currentProfileId && (
+          <HistoryView profileId={currentProfileId} currency={currency} initialCategory={historyFilter} />
+        )}
 
-          <div className="section-header animate-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', animationDelay: '0.2s' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '600' }}>Transacciones Recientes</h2>
-            <span 
-              onClick={() => setActiveTab('history')}
-              style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
-            >Ver todo</span>
-          </div>
+        {activeTab === 'stats' && currentProfileId && (
+          <Stats profileId={currentProfileId} currency={currency} />
+        )}
 
-          <div className="transaction-list animate-up" style={{ animationDelay: '0.3s' }}>
-            {!invoices || invoices.length === 0 ? (
-              <div className="glass-card" style={{ textAlign: 'center', padding: '40px', opacity: 0.6 }}>
-                <p>No hay transacciones aún.</p>
-                <p style={{ fontSize: '12px' }}>¡Agrega tu primera factura!</p>
-              </div>
-            ) : (
-              invoices.map(invoice => (
-                <div key={invoice.id} className="glass-card transaction-item">
-                  <div className="transaction-info">
-                    <div className="icon-box">
-                      {getCategoryIcon(invoice.category)}
-                    </div>
-                    <div>
-                      <p style={{ fontWeight: '600', fontSize: '15px' }}>{invoice.description}</p>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
-                        {invoice.date.toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <p style={{ 
-                    fontWeight: '700', 
-                    color: invoice.amount > 0 ? 'var(--success)' : 'var(--text-primary)' 
-                  }}>
-                    {invoice.amount > 0 ? '+' : ''}{currency} {Math.abs(invoice.amount).toLocaleString()}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </>
-      )}
-
-      {activeTab === 'history' && currentProfileId && (
-        <History 
-          profileId={currentProfileId} 
-          currency={currency} 
-          initialCategory={historyFilter} 
-        />
-      )}
-
-      {activeTab === 'settings' && currentProfileId && (
-        <CategoryManager 
-          onViewHistory={(catName) => {
-            setHistoryFilter(catName);
-            setActiveTab('history');
-          }} 
-        />
-      )}
+        {activeTab === 'settings' && currentProfileId && (
+          <CategoryManager 
+            onViewHistory={(catName) => {
+              setHistoryFilter(catName);
+              setActiveTab('history');
+            }} 
+          />
+        )}
+      </main>
 
       <nav className="nav-bar">
         <div className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')}>
-          <Home size={24} />
+          <Wallet size={24} />
+          <span>Inicio</span>
         </div>
         <div className={`nav-item ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
-          <HistoryIcon size={24} />
+          <LucideHistory size={24} />
+          <span>Historial</span>
         </div>
         <div className="nav-item" onClick={() => setIsModalOpen(true)}>
           <div className="fab">
@@ -196,20 +98,20 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className={`nav-item ${activeTab === 'stats' ? 'active' : ''}`} onClick={() => setActiveTab('stats')}>
-          <Activity size={24} />
+          <BarChart3 size={24} />
+          <span>Estadísticas</span>
         </div>
         <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-          <List size={24} />
+          <SettingsIcon size={24} />
+          <span>Categorías</span>
         </div>
       </nav>
-      
-      <div style={{ height: '100px' }}></div>
 
       {currentProfileId && (
         <AddTransactionModal 
           isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)} 
-          categories={categories || []} 
+          onClose={() => setIsModalOpen(false)}
+          categories={visibleCategories || []}
           profileId={currentProfileId}
         />
       )}
