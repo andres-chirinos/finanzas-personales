@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../lib/db';
-import { X, Save } from 'lucide-react';
+import { X, Save, QrCode } from 'lucide-react';
+import QRScanner from './QRScanner';
 
 interface Props {
   isOpen: boolean;
@@ -13,8 +14,16 @@ const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, categories }) =
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Comida');
   const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [showScanner, setShowScanner] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleScan = (data: { amount: number, description: string, date: Date }) => {
+    setAmount(data.amount.toString());
+    setDescription(data.description);
+    setType('expense');
+    setShowScanner(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +61,19 @@ const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, categories }) =
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <button 
+            type="button" 
+            onClick={() => setShowScanner(true)}
+            style={{
+              width: '100%', padding: '14px', borderRadius: '14px', border: '1px solid var(--glass-border)',
+              background: 'rgba(255,255,255,0.05)', color: 'white', display: 'flex', alignItems: 'center', 
+              justifyContent: 'center', gap: '10px', fontSize: '14px', fontWeight: '500'
+            }}
+          >
+            <QrCode size={20} color="var(--primary)" />
+            Escanear QR de Factura
+          </button>
+
           <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '12px' }}>
             <button 
               type="button"
@@ -132,6 +154,13 @@ const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, categories }) =
             Guardar Transacción
           </button>
         </form>
+
+        {showScanner && (
+          <QRScanner 
+            onScan={handleScan} 
+            onClose={() => setShowScanner(false)} 
+          />
+        )}
       </div>
     </div>
   );

@@ -26,6 +26,8 @@ const App: React.FC = () => {
   // Queries
   const invoices = useLiveQuery(() => db.invoices.orderBy('date').reverse().limit(10).toArray());
   const categories = useLiveQuery(() => db.categories.toArray());
+  const settings = useLiveQuery(() => db.settings.toArray());
+  const currentSettings = settings?.[0];
   
   useEffect(() => {
     seedDatabase();
@@ -64,21 +66,21 @@ const App: React.FC = () => {
         <>
           <div className="balance-card animate-up" style={{ animationDelay: '0.1s' }}>
             <p className="balance-label">Balance Total</p>
-            <p className="balance-amount">${totalBalance.toLocaleString()}</p>
+            <p className="balance-amount">{currentSettings?.currency || 'Bs'} {totalBalance.toLocaleString()}</p>
             
             <div className="stats-grid" style={{ marginTop: '24px' }}>
               <div className="stat-item">
                 <span className="balance-label">Ingresos</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <ArrowUpRight size={16} color="var(--success)" />
-                  <span className="stat-value income">${income.toLocaleString()}</span>
+                  <span className="stat-value income">{currentSettings?.currency || 'Bs'} {income.toLocaleString()}</span>
                 </div>
               </div>
               <div className="stat-item">
                 <span className="balance-label">Gastos</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <ArrowDownLeft size={16} color="var(--danger)" />
-                  <span className="stat-value expense">${Math.abs(expenses).toLocaleString()}</span>
+                  <span className="stat-value expense">{currentSettings?.currency || 'Bs'} {Math.abs(expenses).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -113,7 +115,7 @@ const App: React.FC = () => {
                     fontWeight: '700', 
                     color: invoice.amount > 0 ? 'var(--success)' : 'var(--text-primary)' 
                   }}>
-                    {invoice.amount > 0 ? '+' : ''}{invoice.amount.toLocaleString()}
+                    {invoice.amount > 0 ? '+' : ''}{currentSettings?.currency || 'Bs'} {Math.abs(invoice.amount).toLocaleString()}
                   </p>
                 </div>
               ))
