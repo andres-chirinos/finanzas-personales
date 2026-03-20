@@ -316,3 +316,25 @@ select.premium-input {
 .submit-btn:active {
   transform: scale(0.98);
 }
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 120px; /* Space for fixed nav-bar */
+  -webkit-overflow-scrolling: touch;
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.drag-handle:active {
+  opacity: 1;
+  cursor: grabbing;
+}

@@ -19,6 +19,13 @@ const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, categories, pro
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showScanner, setShowScanner] = useState(false);
 
+  // Reset scanner state when modal closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setShowScanner(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleScan = (data: { amount: number, description: string, date: Date }) => {

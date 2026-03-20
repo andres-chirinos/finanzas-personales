@@ -51,8 +51,8 @@ const QRScanner: React.FC<Props> = ({ onScan, onClose }) => {
   }, []);
 
   return (
-    <div className="modal-overlay" style={{ background: 'rgba(12,14,20,0.98)', zIndex: 3000 }}>
-      <div className="modal-content animate-up" style={{ background: 'transparent', boxShadow: 'none' }}>
+    <div className="modal-overlay" style={{ background: 'rgba(12,14,20,0.98)', zIndex: 3000 }} onClick={onClose}>
+      <div className="modal-content animate-up" style={{ background: 'transparent', boxShadow: 'none' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '0 10px' }}>
           <h2 style={{ color: 'white', fontSize: '20px', fontWeight: '700' }}>Escanear Factura</h2>
           <button 

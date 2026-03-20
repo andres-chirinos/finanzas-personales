@@ -16,9 +16,10 @@ import {
   Coffee,
   Briefcase,
   History,
-  TrendingUp
+  TrendingUp,
+  GripVertical
 } from 'lucide-react';
-import { Reorder } from 'framer-motion';
+import { Reorder, useDragControls } from 'framer-motion';
 import CustomToggle from './ui/CustomToggle';
 
 const ICON_OPTIONS = [
@@ -40,6 +41,72 @@ const COLOR_OPTIONS = [
 interface Props {
   onViewHistory: (categoryName: string) => void;
 }
+
+const CategoryItem = ({ cat, handleEdit, handleDelete, toggleVisibility, onViewHistory }: { 
+  cat: Category, 
+  handleEdit: any, 
+  handleDelete: any, 
+  toggleVisibility: any, 
+  onViewHistory: any 
+}) => {
+  const controls = useDragControls();
+
+  const getIconComponent = (iconName: string) => {
+    const found = ICON_OPTIONS.find(i => i.name === iconName);
+    const IconComp = found ? found.icon : MoreHorizontal;
+    return <IconComp size={20} />;
+  };
+
+  return (
+    <Reorder.Item 
+      value={cat}
+      dragListener={false}
+      dragControls={controls}
+      className="glass-card" 
+      style={{ 
+        padding: '16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+        opacity: cat.isHidden ? 0.5 : 1, marginBottom: '12px'
+      }}
+      whileDrag={{ scale: 1.02, boxShadow: '0 8px 30px rgba(0,0,0,0.5)', zIndex: 10 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div 
+          onPointerDown={(e) => controls.start(e)}
+          style={{ cursor: 'grab', color: 'rgba(255,255,255,0.2)', padding: '4px' }}
+        >
+          <GripVertical size={20} />
+        </div>
+        
+        <div className="icon-box" style={{ background: 'rgba(255,255,255,0.05)', color: cat.color, width: '40px', height: '40px' }}>
+          {getIconComponent(cat.icon)}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontWeight: '600', fontSize: '15px' }}>{cat.name}</span>
+          {cat.isHidden && <span style={{ fontSize: '10px', color: 'var(--danger)' }}>Oculta</span>}
+        </div>
+      </div>
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button onClick={() => onViewHistory(cat.name)} style={{ background: 'none', border: 'none', color: 'var(--primary)', opacity: 0.8, padding: '8px' }}>
+          <History size={18} />
+        </button>
+
+        <CustomToggle 
+          isOn={!cat.isHidden} 
+          onToggle={() => toggleVisibility(cat)} 
+        />
+        
+        <button onClick={() => handleEdit(cat)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', padding: '8px' }}>
+          <Edit2 size={18} />
+        </button>
+        
+        <button onClick={() => handleDelete(cat.id!)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.15)', padding: '8px' }}>
+          <Trash2 size={18} />
+        </button>
+      </div>
+    </Reorder.Item>
+  );
+};
 
 const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
   const [isAdding, setIsAdding] = useState(false);
@@ -126,12 +193,6 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
     setColor('#64748b');
   };
 
-  const getIconComponent = (iconName: string) => {
-    const found = ICON_OPTIONS.find(i => i.name === iconName);
-    const IconComp = found ? found.icon : MoreHorizontal;
-    return <IconComp size={20} />;
-  };
-
   return (
     <div className="animate-up" style={{ padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -161,7 +222,7 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
       </div>
 
       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '24px', marginLeft: '4px' }}>
-        Arrastra para reordenar. Las categorías ocultas no aparecerán al registrar transacciones.
+        Arrastra usando el icono izquierdo para reordenar.
       </p>
 
       {isAdding && (
@@ -179,7 +240,7 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
               placeholder="Nombre de la categoría" 
               value={name}
               onChange={(e) => setName(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
+              className="premium-input"
             />
             
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -190,7 +251,7 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
                   style={{
                     padding: '10px', borderRadius: '10px', border: '1px solid var(--glass-border)',
                     background: icon === opt.name ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                    color: 'white'
+                    color: 'white', cursor: 'pointer'
                   }}
                 >
                   <opt.icon size={20} />
@@ -205,7 +266,7 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
                   onClick={() => setColor(c)}
                   style={{
                     width: '32px', height: '32px', borderRadius: '50%', border: color === c ? '2px solid white' : 'none',
-                    background: c
+                    background: c, cursor: 'pointer'
                   }}
                 />
               ))}
@@ -213,7 +274,7 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
 
             <button 
               onClick={handleSave}
-              style={{ width: '100%', padding: '14px', borderRadius: '14px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: '700' }}
+              className="submit-btn"
             >
               {editingId ? 'Actualizar' : 'Crear Categoría'}
             </button>
@@ -225,50 +286,17 @@ const CategoryManager: React.FC<Props> = ({ onViewHistory }) => {
         axis="y" 
         values={categories || []} 
         onReorder={handleReorder}
-        style={{ display: 'flex', flexDirection: 'column', gap: '12px', listStyle: 'none', padding: 0 }}
+        style={{ display: 'flex', flexDirection: 'column', listStyle: 'none', padding: 0 }}
       >
         {categories?.map((cat) => (
-          <Reorder.Item 
+          <CategoryItem 
             key={cat.id} 
-            value={cat}
-            className="glass-card" 
-            style={{ 
-              padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-              opacity: cat.isHidden ? 0.5 : 1, cursor: 'grab' 
-            }}
-            whileDrag={{ scale: 1.02, boxShadow: '0 8px 30px rgba(0,0,0,0.5)', zIndex: 10 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div className="icon-box" style={{ background: 'rgba(255,255,255,0.05)', color: cat.color }}>
-                {getIconComponent(cat.icon)}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: '600' }}>{cat.name}</span>
-                {cat.isHidden && <span style={{ fontSize: '10px', color: 'var(--danger)' }}>Oculta</span>}
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <button onClick={(e) => { e.stopPropagation(); onViewHistory(cat.name); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', opacity: 0.8 }}>
-                <History size={18} />
-              </button>
-
-              <CustomToggle 
-                isOn={!cat.isHidden} 
-                onToggle={() => {
-                  toggleVisibility(cat);
-                }} 
-              />
-              
-              <button onClick={(e) => { e.stopPropagation(); handleEdit(cat); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)' }}>
-                <Edit2 size={18} />
-              </button>
-              
-              <button onClick={(e) => { e.stopPropagation(); handleDelete(cat.id!); }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)' }}>
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </Reorder.Item>
+            cat={cat} 
+            handleEdit={handleEdit} 
+            handleDelete={handleDelete} 
+            toggleVisibility={toggleVisibility} 
+            onViewHistory={onViewHistory} 
+          />
         ))}
       </Reorder.Group>
     </div>
