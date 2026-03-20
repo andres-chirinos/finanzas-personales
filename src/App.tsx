@@ -45,7 +45,7 @@ const App: React.FC = () => {
           </div>
         </div>
         <div style={{ color: 'var(--primary)', fontWeight: '800', fontSize: '18px' }}>
-          Antigravity
+          Billetera Personal
         </div>
       </header>
 
