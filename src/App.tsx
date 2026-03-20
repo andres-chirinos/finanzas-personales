@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { db, seedDatabase } from './lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import AddTransactionModal from './components/AddTransactionModal';
-import Settings from './components/Settings';
+import History from './components/History';
+import ProfileManager from './components/ProfileManager';
 import { 
   Plus, 
   Wallet, 
   ArrowUpRight, 
   ArrowDownLeft, 
-  History, 
+  History as HistoryIcon, 
   Settings as SettingsIcon,
   Home,
   User,
@@ -24,10 +25,23 @@ const App: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Queries
-  const invoices = useLiveQuery(() => db.invoices.orderBy('date').reverse().limit(10).toArray());
-  const categories = useLiveQuery(() => db.categories.toArray());
   const settings = useLiveQuery(() => db.settings.toArray());
   const currentSettings = settings?.[0];
+  const currentProfileId = currentSettings?.currentProfileId;
+
+  const currentProfile = useLiveQuery(
+    () => currentProfileId ? db.profiles.get(currentProfileId) : undefined,
+    [currentProfileId]
+  );
+
+  const invoices = useLiveQuery(
+    () => currentProfileId ? db.invoices.where('profileId').equals(currentProfileId).reverse().limit(10).toArray() : [],
+    [currentProfileId]
+  );
+  
+  const categories = useLiveQuery(() => db.categories.toArray());
+  
+  const currency = currentProfile?.currency || 'Bs';
   
   useEffect(() => {
     seedDatabase();
@@ -66,21 +80,21 @@ const App: React.FC = () => {
         <>
           <div className="balance-card animate-up" style={{ animationDelay: '0.1s' }}>
             <p className="balance-label">Balance Total</p>
-            <p className="balance-amount">{currentSettings?.currency || 'Bs'} {totalBalance.toLocaleString()}</p>
+            <p className="balance-amount">{currency} {totalBalance.toLocaleString()}</p>
             
             <div className="stats-grid" style={{ marginTop: '24px' }}>
               <div className="stat-item">
                 <span className="balance-label">Ingresos</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <ArrowUpRight size={16} color="var(--success)" />
-                  <span className="stat-value income">{currentSettings?.currency || 'Bs'} {income.toLocaleString()}</span>
+                  <span className="stat-value income">{currency} {income.toLocaleString()}</span>
                 </div>
               </div>
               <div className="stat-item">
                 <span className="balance-label">Gastos</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <ArrowDownLeft size={16} color="var(--danger)" />
-                  <span className="stat-value expense">{currentSettings?.currency || 'Bs'} {Math.abs(expenses).toLocaleString()}</span>
+                  <span className="stat-value expense">{currency} {Math.abs(expenses).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -88,7 +102,10 @@ const App: React.FC = () => {
 
           <div className="section-header animate-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', animationDelay: '0.2s' }}>
             <h2 style={{ fontSize: '18px', fontWeight: '600' }}>Transacciones Recientes</h2>
-            <span style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>Ver todo</span>
+            <span 
+              onClick={() => setActiveTab('history')}
+              style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+            >Ver todo</span>
           </div>
 
           <div className="transaction-list animate-up" style={{ animationDelay: '0.3s' }}>
@@ -115,7 +132,7 @@ const App: React.FC = () => {
                     fontWeight: '700', 
                     color: invoice.amount > 0 ? 'var(--success)' : 'var(--text-primary)' 
                   }}>
-                    {invoice.amount > 0 ? '+' : ''}{currentSettings?.currency || 'Bs'} {Math.abs(invoice.amount).toLocaleString()}
+                    {invoice.amount > 0 ? '+' : ''}{currency} {Math.abs(invoice.amount).toLocaleString()}
                   </p>
                 </div>
               ))
@@ -124,14 +141,23 @@ const App: React.FC = () => {
         </>
       )}
 
-      {activeTab === 'settings' && <Settings />}
+      {activeTab === 'history' && currentProfileId && (
+        <History profileId={currentProfileId} currency={currency} />
+      )}
+
+      {activeTab === 'settings' && currentProfileId && (
+        <ProfileManager 
+          currentProfileId={currentProfileId} 
+          onSwitch={(id) => db.settings.update(currentSettings!.id!, { currentProfileId: id })} 
+        />
+      )}
 
       <nav className="nav-bar">
         <div className={`nav-item ${activeTab === 'home' ? 'active' : ''}`} onClick={() => setActiveTab('home')}>
           <Home size={24} />
         </div>
         <div className={`nav-item ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
-          <History size={24} />
+          <HistoryIcon size={24} />
         </div>
         <div className="nav-item" onClick={() => setIsModalOpen(true)}>
           <div className="fab">
@@ -142,17 +168,20 @@ const App: React.FC = () => {
           <Activity size={24} />
         </div>
         <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-          <SettingsIcon size={24} />
+          <User size={24} />
         </div>
       </nav>
       
       <div style={{ height: '100px' }}></div>
 
-      <AddTransactionModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        categories={categories || []} 
-      />
+      {currentProfileId && (
+        <AddTransactionModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          categories={categories || []} 
+          profileId={currentProfileId}
+        />
+      )}
     </div>
   );
 };

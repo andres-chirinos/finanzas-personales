@@ -7,9 +7,10 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   categories: any[];
+  profileId: string;
 }
 
-const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, categories }) => {
+const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, categories, profileId }) => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Comida');
@@ -31,6 +32,7 @@ const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, categories }) =
     if (isNaN(numAmount)) return;
 
     await db.invoices.add({
+      profileId,
       amount: type === 'income' ? numAmount : -numAmount,
       description,
       category,

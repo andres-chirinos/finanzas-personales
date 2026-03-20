@@ -1,17 +1,26 @@
 import Dexie, { type Table } from 'dexie';
 
+export interface Profile {
+  id: string;
+  name: string;
+  avatar?: string;
+  currency: string;
+  createdAt: Date;
+}
+
 export interface Invoice {
   id?: number;
+  profileId: string;
   amount: number;
   description: string;
   category: string;
   date: Date;
-  store?: string;
-  isAnonymized: boolean; // Flag to check if it has been shared anonymously
+  isAnonymized: boolean;
 }
 
 export interface Category {
   id?: number;
+  profileId?: string; // Optional: shared categories or per-profile
   name: string;
   icon: string;
   color: string;
@@ -19,31 +28,48 @@ export interface Category {
 
 export interface UserSettings {
   id?: number;
-  theme: 'light' | 'dark';
-  currency: string;
+  currentProfileId?: string;
+  theme: string;
+  currency?: string;
   contributeAnonymously: boolean;
 }
 
-export class MyDatabase extends Dexie {
+export class AppDatabase extends Dexie {
   invoices!: Table<Invoice>;
   categories!: Table<Category>;
   settings!: Table<UserSettings>;
+  profiles!: Table<Profile>;
 
   constructor() {
     super('BilleteraDB');
-    this.version(1).stores({
-      invoices: '++id, date, category, isAnonymized',
-      categories: '++id, &name',
-      settings: '++id'
+    this.version(3).stores({
+      invoices: '++id, profileId, date, category',
+      categories: '++id, profileId, &name',
+      settings: '++id',
+      profiles: 'id, name'
     });
   }
 }
 
-export const db = new MyDatabase();
+export const db = new AppDatabase();
 
 // Initial seed data
 export async function seedDatabase() {
-  await db.transaction('rw', [db.categories, db.settings], async () => {
+  await db.transaction('rw', [db.categories, db.settings, db.profiles], async () => {
+    // 1. Ensure at least one profile exists
+    let defaultProfile = await db.profiles.toCollection().first();
+    if (!defaultProfile) {
+      const newId = crypto.randomUUID();
+      defaultProfile = {
+        id: newId,
+        name: 'Principal',
+        currency: 'Bs',
+        createdAt: new Date()
+      };
+      await db.profiles.add(defaultProfile);
+    }
+
+    // 2. Setup categories
     const categoriesCount = await db.categories.count();
     if (categoriesCount === 0) {
       await db.categories.bulkAdd([
@@ -56,13 +82,20 @@ export async function seedDatabase() {
       ]);
     }
 
+    // 3. Setup settings
     const settingsCount = await db.settings.count();
     if (settingsCount === 0) {
       await db.settings.add({
         theme: 'dark',
-        currency: 'Bs',
-        contributeAnonymously: true
+        currentProfileId: defaultProfile.id,
+        contributeAnonymously: false
       });
+    } else {
+      // Ensure currentProfileId is set if it was missing from previous version
+      const settings = await db.settings.toCollection().first();
+      if (settings && !settings.currentProfileId) {
+        await db.settings.update(settings.id!, { currentProfileId: defaultProfile.id });
+      }
     }
   });
 }
