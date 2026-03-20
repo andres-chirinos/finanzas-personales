@@ -1,27 +1,48 @@
 import React, { useState } from 'react';
-import { db, type Invoice } from '../lib/db';
+import { db } from '../lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Search, Utensils, Car, Tv, Activity, MoreHorizontal, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
 interface Props {
   profileId: string;
   currency: string;
+  initialCategory?: string;
 }
 
-const History: React.FC<Props> = ({ profileId, currency }) => {
+const History: React.FC<Props> = ({ profileId, currency, initialCategory }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const invoices = useLiveQuery(
-    () => db.invoices
-      .where('profileId').equals(profileId)
-      .reverse()
-      .sortBy('date'),
-    [profileId]
-  );
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory || '');
 
-  const filteredInvoices = invoices?.filter(inv => 
-    inv.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    inv.category.toLowerCase().includes(searchTerm.toLowerCase())
+  React.useEffect(() => {
+    if (initialCategory !== undefined) {
+      setSelectedCategory(initialCategory);
+    }
+  }, [initialCategory]);
+  
+  const categories = useLiveQuery(() => db.categories.toArray());
+
+  const invoices = useLiveQuery(
+    async () => {
+      let query = db.invoices.where('profileId').equals(profileId);
+      const results = await query.reverse().sortBy('date');
+      
+      return results.filter(inv => {
+        const matchesSearch = inv.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                             inv.category.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = selectedCategory ? inv.category === selectedCategory : true;
+        
+        const invDate = new Date(inv.date).getTime();
+        const start = startDate ? new Date(startDate).getTime() : 0;
+        const end = endDate ? new Date(endDate).getTime() + 86400000 : Infinity; // +1 day to include end date
+        
+        const matchesDate = invDate >= start && invDate <= end;
+        
+        return matchesSearch && matchesCategory && matchesDate;
+      });
+    },
+    [profileId, searchTerm, selectedCategory, startDate, endDate]
   );
 
   const getCategoryIcon = (categoryName: string) => {
@@ -52,15 +73,59 @@ const History: React.FC<Props> = ({ profileId, currency }) => {
             }}
           />
         </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+          <div>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', marginLeft: '4px' }}>Desde</p>
+            <input 
+              type="date" 
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={{
+                width: '100%', padding: '10px', borderRadius: '12px', border: '1px solid var(--glass-border)',
+                background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '13px'
+              }}
+            />
+          </div>
+          <div>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', marginLeft: '4px' }}>Hasta</p>
+            <input 
+              type="date" 
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={{
+                width: '100%', padding: '10px', borderRadius: '12px', border: '1px solid var(--glass-border)',
+                background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '13px'
+              }}
+            />
+          </div>
+        </div>
+        
+        <div style={{ marginTop: '12px' }}>
+          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', marginLeft: '4px' }}>Categoría</p>
+          <select 
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            style={{
+              width: '100%', padding: '12px', borderRadius: '14px', border: '1px solid var(--glass-border)',
+              background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '14px'
+            }}
+          >
+            <option value="">Todas las categorías</option>
+            {categories?.map(cat => (
+              <option key={cat.id} value={cat.name}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {filteredInvoices?.length === 0 ? (
+        {invoices?.length === 0 ? (
           <div className="glass-card" style={{ textAlign: 'center', padding: '40px', opacity: 0.6 }}>
             <p>No se encontraron transacciones.</p>
           </div>
         ) : (
-          filteredInvoices?.map(invoice => (
+          invoices?.map(invoice => (
             <div key={invoice.id} className="glass-card transaction-item" style={{ padding: '16px' }}>
               <div className="transaction-info">
                 <div className="icon-box" style={{ width: '40px', height: '40px' }}>

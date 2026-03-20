@@ -24,6 +24,8 @@ export interface Category {
   name: string;
   icon: string;
   color: string;
+  order: number;
+  isHidden: boolean;
 }
 
 export interface UserSettings {
@@ -32,6 +34,7 @@ export interface UserSettings {
   theme: string;
   currency?: string;
   contributeAnonymously: boolean;
+  categorySort?: 'manual' | 'most-used';
 }
 
 export class AppDatabase extends Dexie {
@@ -42,9 +45,9 @@ export class AppDatabase extends Dexie {
 
   constructor() {
     super('BilleteraDB');
-    this.version(3).stores({
+    this.version(5).stores({
       invoices: '++id, profileId, date, category',
-      categories: '++id, profileId, &name',
+      categories: '++id, profileId, name, order, isHidden',
       settings: '++id',
       profiles: 'id, name'
     });
@@ -73,12 +76,12 @@ export async function seedDatabase() {
     const categoriesCount = await db.categories.count();
     if (categoriesCount === 0) {
       await db.categories.bulkAdd([
-        { name: 'Comida', icon: 'Utensils', color: '#ef4444' },
-        { name: 'Transporte', icon: 'Car', color: '#3b82f6' },
-        { name: 'Vivienda', icon: 'Home', color: '#10b981' },
-        { name: 'Entretenimiento', icon: 'Tv', color: '#f59e0b' },
-        { name: 'Salud', icon: 'Activity', color: '#ec4899' },
-        { name: 'Otros', icon: 'MoreHorizontal', color: '#64748b' }
+        { name: 'Comida', icon: 'Utensils', color: '#ef4444', order: 1, isHidden: false },
+        { name: 'Transporte', icon: 'Car', color: '#3b82f6', order: 2, isHidden: false },
+        { name: 'Vivienda', icon: 'Home', color: '#10b981', order: 3, isHidden: false },
+        { name: 'Entretenimiento', icon: 'Tv', color: '#f59e0b', order: 4, isHidden: false },
+        { name: 'Salud', icon: 'Activity', color: '#ec4899', order: 5, isHidden: false },
+        { name: 'Otros', icon: 'MoreHorizontal', color: '#64748b', order: 6, isHidden: false }
       ]);
     }
 

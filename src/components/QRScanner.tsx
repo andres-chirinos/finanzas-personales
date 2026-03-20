@@ -37,7 +37,7 @@ const QRScanner: React.FC<Props> = ({ onScan, onClose }) => {
           onScan({ amount: num, description: 'Escaneado', date: new Date() });
         }
       }
-    }, (err) => {
+    }, (_err) => {
       // err is common while seeking
     });
 

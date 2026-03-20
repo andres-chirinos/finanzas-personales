@@ -137,9 +137,12 @@ const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, categories, pro
                 background: 'rgba(255,255,255,0.05)', color: 'white'
               }}
             >
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.name} style={{ background: '#0f172a' }}>{cat.name}</option>
-              ))}
+              {categories
+                .filter(c => !c.isHidden)
+                .sort((a, b) => a.order - b.order)
+                .map(cat => (
+                  <option key={cat.id} value={cat.name} style={{ background: '#0f172a' }}>{cat.name}</option>
+                ))}
             </select>
           </div>
 

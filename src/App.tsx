@@ -4,25 +4,32 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import AddTransactionModal from './components/AddTransactionModal';
 import History from './components/History';
 import ProfileManager from './components/ProfileManager';
+import CategoryManager from './components/CategoryManager';
 import { 
   Plus, 
   Wallet, 
   ArrowUpRight, 
   ArrowDownLeft, 
   History as HistoryIcon, 
-  Settings as SettingsIcon,
   Home,
   User,
+  List,
   Utensils,
   Car,
   Tv,
   Activity,
-  MoreHorizontal
+  MoreHorizontal,
+  ShoppingBag,
+  Heart,
+  Coffee,
+  Briefcase
 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<string | undefined>(undefined);
   
   // Queries
   const settings = useLiveQuery(() => db.settings.toArray());
@@ -58,6 +65,10 @@ const App: React.FC = () => {
       case 'Car': return <Car size={20} color={cat.color} />;
       case 'Tv': return <Tv size={20} color={cat.color} />;
       case 'Activity': return <Activity size={20} color={cat.color} />;
+      case 'ShoppingBag': return <ShoppingBag size={20} color={cat.color} />;
+      case 'Heart': return <Heart size={20} color={cat.color} />;
+      case 'Coffee': return <Coffee size={20} color={cat.color} />;
+      case 'Briefcase': return <Briefcase size={20} color={cat.color} />;
       default: return <MoreHorizontal size={20} color={cat?.color || '#fff'} />;
     }
   };
@@ -71,10 +82,24 @@ const App: React.FC = () => {
           </div>
           <h1 style={{ fontSize: '20px', fontWeight: '700' }}>Billetera</h1>
         </div>
-        <div className="icon-box glass-card" style={{ width: '40px', height: '40px', padding: 0 }}>
+        <div 
+          className="icon-box glass-card" 
+          style={{ width: '40px', height: '40px', padding: 0, cursor: 'pointer' }}
+          onClick={() => setIsProfileOpen(!isProfileOpen)}
+        >
           <User size={20} />
         </div>
       </header>
+
+      {isProfileOpen && currentProfileId && (
+        <ProfileManager 
+          currentProfileId={currentProfileId} 
+          onSwitch={(id) => {
+            db.settings.update(currentSettings!.id!, { currentProfileId: id });
+            setIsProfileOpen(false);
+          }} 
+        />
+      )}
 
       {activeTab === 'home' && (
         <>
@@ -142,13 +167,19 @@ const App: React.FC = () => {
       )}
 
       {activeTab === 'history' && currentProfileId && (
-        <History profileId={currentProfileId} currency={currency} />
+        <History 
+          profileId={currentProfileId} 
+          currency={currency} 
+          initialCategory={historyFilter} 
+        />
       )}
 
       {activeTab === 'settings' && currentProfileId && (
-        <ProfileManager 
-          currentProfileId={currentProfileId} 
-          onSwitch={(id) => db.settings.update(currentSettings!.id!, { currentProfileId: id })} 
+        <CategoryManager 
+          onViewHistory={(catName) => {
+            setHistoryFilter(catName);
+            setActiveTab('history');
+          }} 
         />
       )}
 
@@ -168,7 +199,7 @@ const App: React.FC = () => {
           <Activity size={24} />
         </div>
         <div className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-          <User size={24} />
+          <List size={24} />
         </div>
       </nav>
       
